@@ -1,0 +1,17 @@
+[package]
+name = "sugar_diff"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+color-eyre = "0.6"
+tui = "0.19"
+crossterm = "0.25"
+
+[profile.release]
+opt-level = "s"
+strip = true
+lto = true
+codegen-units = 1
