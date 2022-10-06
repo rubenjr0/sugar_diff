@@ -48,9 +48,10 @@ impl App {
                 .meassurements
                 .iter()
                 .enumerate()
-                .find(|(_, x)| m.timestamp() < x.timestamp())
+                .rev()
+                .find(|(_, m2)| m2.timestamp() < m.timestamp())
             {
-                idx
+                idx+1
             } else {
                 0
             },
