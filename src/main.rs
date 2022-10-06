@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, time::Duration};
 
 use color_eyre::Result;
 use crossterm::{
@@ -41,11 +41,24 @@ impl App {
         }
     }
 
-    fn get_meassure(&mut self) -> Result<Meassurement> {
+    fn add_meassure(&mut self) -> Result<()> {
         let m = Meassurement::new(self.level_input.to_owned(), self.time_input.to_owned())?;
+        self.meassurements.insert(
+            if let Some((idx, _)) = self
+                .meassurements
+                .iter()
+                .enumerate()
+                .find(|(_, x)| m.timestamp() < x.timestamp())
+            {
+                idx
+            } else {
+                0
+            },
+            m,
+        );
         self.level_input.clear();
         self.time_input.clear();
-        Ok(m)
+        Ok(())
     }
 }
 
@@ -66,7 +79,6 @@ fn main() -> Result<()> {
 
     let app = App::new();
     let res = run_app(&mut terminal, app);
-    println!("`res` finished executing as {res:?}");
     disable_raw_mode()?;
     execute!(
         terminal.backend_mut(),
@@ -100,8 +112,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> Result<()> {
                 KeyCode::Enter => match app.input_mode {
                     InputMode::Level => app.input_mode = InputMode::Time,
                     InputMode::Time => {
-                        let m = app.get_meassure()?;
-                        app.meassurements.push(m);
+                        app.add_meassure()?;
                         app.input_mode = InputMode::Level;
                     }
                 },
@@ -119,8 +130,9 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
             [
                 Constraint::Length(3),
                 Constraint::Length(3),
-                Constraint::Min(8),
+                Constraint::Length(8),
                 Constraint::Min(1),
+                Constraint::Length(3),
             ]
             .as_ref(),
         )
@@ -168,7 +180,8 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         .map(|m| (m.timestamp() as f64, m.y() as f64))
         .collect::<Vec<_>>();
     let dataset = Dataset::default()
-        .marker(symbols::Marker::Dot)
+        .marker(symbols::Marker::Braille)
+        .graph_type(tui::widgets::GraphType::Line)
         .style(Style::default().fg(Color::Cyan))
         .data(&data);
     let chart = Chart::new(vec![dataset])
@@ -194,6 +207,29 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         )
         .y_axis(Axis::default().title("Level").bounds([0.0, 400.0]));
     f.render_widget(chart, chunks[3]);
+
+    let time_to_text = {
+        let mut text = String::from("Waiting for meassurements...");
+        if app.meassurements.len() >= 2 {
+            let mf = app.meassurements.last();
+            let mpf = app.meassurements.get(app.meassurements.len() - 2);
+            if let Some((level, rate)) = mf.and_then(|mf| Some((mf.y(), mf.diff(mpf.unwrap())))) {
+                let (variant, time) = if rate <= 0.0 {
+                    ("low", (80 - level) as f32 / rate)
+                } else {
+                    ("high", (300 - level) as f32 / rate)
+                };
+                text = format!(
+                    "Time to {}: {}",
+                    variant,
+                    human_duration::human_duration(&Duration::from_secs((time * 60.0) as u64))
+                );
+            }
+        }
+        text
+    };
+    let time_to = Paragraph::new(time_to_text).block(Block::default().borders(Borders::ALL));
+    f.render_widget(time_to, chunks[4]);
 
     let (idx, len) = match app.input_mode {
         InputMode::Level => (0, app.level_input.len() as u16),

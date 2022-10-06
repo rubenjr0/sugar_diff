@@ -9,6 +9,7 @@ edition = "2021"
 color-eyre = "0.6"
 tui = "0.19"
 crossterm = "0.25"
+human-duration = "0.1.0"
 
 [profile.release]
 opt-level = "s"

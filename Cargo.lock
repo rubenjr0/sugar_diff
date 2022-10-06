@@ -131,6 +131,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22030e2c5a68ec659fde1e949a745124b48e6fa8b045b7ed5bd1fe4ccc5c4e5d"
 
 [[package]]
+name = "human-duration"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "37a429277d8afba0e1a2cf784b43f938dff72ce33e6aba477c3021997171c87b"
+
+[[package]]
 name = "indenter"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -316,6 +322,7 @@ version = "0.1.0"
 dependencies = [
  "color-eyre",
  "crossterm",
+ "human-duration",
  "tui",
 ]
 
